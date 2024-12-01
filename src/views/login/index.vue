@@ -14,7 +14,7 @@
     <!-- 登录表单 -->
     <el-card class="login-card">
       <div class="text-center relative">
-        <h2>{{ defaultSettings.title }}</h2>
+        <h2>{{ displayName }}</h2>
         <el-tag class="ml-2 absolute-rt">{{ defaultSettings.version }}</el-tag>
       </div>
 
@@ -96,20 +96,17 @@
         </el-button>
 
         <!-- 账号密码提示 -->
-        <div class="mt-10 text-sm">
+        <!-- <div class="mt-10 text-sm">
           <span>{{ $t("login.username") }}: admin</span>
           <span class="ml-4">{{ $t("login.password") }}: 123456</span>
-        </div>
+        </div> -->
       </el-form>
     </el-card>
 
     <!-- ICP备案 -->
     <div class="icp-info" v-show="icpVisible">
-      <p>
-        Copyright © 2021 - 2024 youlai.tech All Rights Reserved. 有来技术
-        版权所有
-      </p>
-      <p>皖ICP备20006496号-3</p>
+      <p>Copyright ©2024 何记培正堂</p>
+      <!-- <p>皖ICP备20006496号-3</p> -->
     </div>
   </div>
 </template>
@@ -127,7 +124,8 @@ import { ThemeEnum } from "@/enums/ThemeEnum";
 
 // 类型定义
 import type { FormInstance } from "element-plus";
-
+// 定义项目名称（中文名）
+const displayName = "十年一剑";
 // 导入 login.scss 文件
 import "@/styles/login.scss";
 
@@ -155,7 +153,7 @@ const loginFormRef = ref<FormInstance>();
 
 const loginData = ref<LoginData>({
   username: "admin",
-  password: "123456",
+  password: "admin123",
   captchaKey: "",
   captchaCode: "",
 });

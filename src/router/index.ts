@@ -112,6 +112,32 @@ export const constantRoutes: RouteRecordRaw[] = [
              },
          ]
      }*/
+  {
+    path: "/essay",
+    component: Layout,
+    meta: { title: "时光广场", icon: "essay" },
+    children: [
+      {
+        path: "list",
+        component: () => import("@/views/essay/list.vue"),
+        name: "EssayList",
+        meta: { title: "文章列表" },
+      },
+      {
+        path: "create",
+        component: () => import("@/views/essay/create.vue"),
+        name: "EssayCreate",
+        meta: { title: "发布文章" },
+      },
+      {
+        path: "detail/:id",
+        component: () => import("@/views/essay/detail.vue"),
+        name: "EssayDetail",
+        meta: { title: "文章详情" },
+        props: true,
+      },
+    ],
+  },
 ];
 
 /**
