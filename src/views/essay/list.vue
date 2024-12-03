@@ -160,176 +160,57 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import type { Post } from "@/types/essay";
-import { ElMessage } from "element-plus";
-import html2canvas from "html2canvas";
-import {
-  Search,
-  Plus,
-  Message,
-  Camera,
-  Pointer as ThumbUp,
-  ChatRound,
-  Loading,
-  ArrowUp,
-} from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import EssayAPI from "@/api/essay";
 import { debounce } from "@/utils/debounce";
+import type { EssayPost } from "@/api/essay";
 
 const router = useRouter();
-const posts = ref<Post[]>([]);
-const currentPage = ref(1);
-const pageSize = ref(10);
-const loading = ref(false);
-const searchKeyword = ref("");
-const searchType = ref("content");
+const posts = ref<EssayPost[]>([]); // 帖子列表
+const loading = ref(false); // 加载状态
+const queryParams = reactive({
+  pageNum: 1, // 当前页码
+  pageSize: 10, // 每页显示数量
+  status: 1, // 1为已发布的帖子
+  createTime: undefined, // 创建时间
+  title: "", // 搜索标题
+});
 
-// 留言相关
-const messageDialogVisible = ref(false);
-const messageForm = ref({ content: "", toUserId: "" });
-const sendingMessage = ref(false);
-
-// 分享图相关
-const shareImageDialogVisible = ref(false);
-const shareImageRef = ref<HTMLElement | undefined>();
-const currentPost = ref<Post | undefined>();
-
-// 搜索处理
-const handleSearch = debounce(async () => {
-  currentPage.value = 1;
-  posts.value = [];
-  await fetchPosts();
-}, 300);
-
-// 获取文章列表
+// 使用与create.vue相同的API获取帖子
 const fetchPosts = async () => {
-  if (loading.value) return;
   loading.value = true;
-
   try {
-    const queryParams = new URLSearchParams({
-      page: currentPage.value.toString(),
-      size: pageSize.value.toString(),
-      type: searchType.value,
-      keyword: searchKeyword.value,
-      status: "published",
-      sort: "ocreate_time,desc",
-    }).toString();
-
-    const response = await fetch(`/api/essays?${queryParams}`);
-    const data = await response.json();
-
-    if (currentPage.value === 1) {
-      posts.value = data.content;
-    } else {
-      posts.value.push(...data.content);
-    }
-
-    loading.value = data.content.length < pageSize.value;
+    const data = await EssayAPI.getPage(queryParams);
+    posts.value = data.list; // 更新帖子列表
   } catch (error) {
     console.error("获取文章列表失败：", error);
     ElMessage.error("获取文章列表失败");
-    posts.value = [];
-    loading.value = true;
+  } finally {
+    loading.value = false;
   }
 };
 
-// 加载更多
-const loadMore = async () => {
-  // 只有在非加载状态且有更多数据时才继续加载
-  if (!loading.value) {
-    currentPage.value++;
-    await fetchPosts();
-  }
-};
+// 使用防抖函数处理搜索
+const handleSearch = debounce(() => {
+  queryParams.pageNum = 1; // 重置页码
+  fetchPosts(); // 重新获取帖子
+}, 300);
 
-// 处理点赞
-const handleLike = async (post: Post) => {
+// 处理点赞操作
+const handleLike = async (post: EssayPost) => {
   try {
-    await fetch(`/api/essays/${post.oid}/like`, { method: "POST" });
-    post.likes_count = (post.likes_count || 0) + 1;
-    post.isLiked = true;
+    await EssayAPI.addOrUpdate({ ...post, isLiked: !post.isLiked });
+    post.isLiked = !post.isLiked; // 切换点赞状态
+    post.likes_count += post.isLiked ? 1 : -1; // 更新点赞数
   } catch (error) {
     console.error("点赞失败：", error);
     ElMessage.error("点赞失败");
   }
 };
 
-// 查看文章详情
-const viewDetail = (id: string) => {
-  router.push(`/essay/detail/${id}`);
-};
-
-// 跳转到用户主页
-const goToUserProfile = (userId: string) => {
-  router.push(`/user/profile/${userId}`);
-};
-
-// 打开留言对话框
-const openMessageDialog = (post: Post) => {
-  messageForm.value.toUserId = post.oauthor_id;
-  messageDialogVisible.value = true;
-};
-
-// 发送留言
-const sendMessage = async () => {
-  if (!messageForm.value.content.trim()) {
-    ElMessage.warning("请输入留言内容");
-    return;
-  }
-
-  sendingMessage.value = true;
-  try {
-    await fetch("/api/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(messageForm.value),
-    });
-    ElMessage.success("留言发送成功");
-    messageDialogVisible.value = false;
-    messageForm.value.content = "";
-  } catch (error) {
-    console.error("发送留言失败：", error);
-    ElMessage.error("发送留言失败");
-  } finally {
-    sendingMessage.value = false;
-  }
-};
-
-// 生成分享图
-const generateShareImage = async (post: Post) => {
-  currentPost.value = post;
-  shareImageDialogVisible.value = true;
-  // 等待 DOM 更新
-  await nextTick();
-  if (shareImageRef.value) {
-    try {
-      const canvas = await html2canvas(shareImageRef.value);
-      // 保存 canvas 数据用于下载
-      currentPost.value.shareImageData = canvas.toDataURL("image/png");
-    } catch (error) {
-      console.error("生成分享图失败：", error);
-      ElMessage.error("生成分享图失败");
-    }
-  }
-};
-
-// 下载分享图
-const downloadShareImage = () => {
-  if (currentPost.value?.shareImageData) {
-    const link = document.createElement("a");
-    link.download = `share-${currentPost.value.oid}.png`;
-    link.href = currentPost.value.shareImageData;
-    link.click();
-  }
-};
-
-// 格式化日期
-const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString();
-};
-
+// 组件挂载时初始化数据
 onMounted(() => {
   fetchPosts();
 });
