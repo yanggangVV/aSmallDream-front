@@ -200,14 +200,14 @@ const handleSearch = debounce(() => {
 
 // 处理点赞操作
 const handleLike = async (post: EssayPost) => {
-  try {
-    await EssayAPI.addOrUpdate({ ...post, isLiked: !post.isLiked });
-    post.isLiked = !post.isLiked; // 切换点赞状态
-    post.likes_count += post.isLiked ? 1 : -1; // 更新点赞数
-  } catch (error) {
-    console.error("点赞失败：", error);
-    ElMessage.error("点赞失败");
-  }
+  // try {
+  //   await EssayAPI.addOrUpdate({ ...post, isLiked: !post.isLiked });
+  //   post.isLiked = !post.isLiked; // 切换点赞状态
+  //   post.likes_count += post.isLiked ? 1 : -1; // 更新点赞数
+  // } catch (error) {
+  //   console.error("点赞失败：", error);
+  //   ElMessage.error("点赞失败");
+  // }
 };
 
 // 组件挂载时初始化数据
